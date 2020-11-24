@@ -34,11 +34,26 @@ export const SignUpForm = () => {
     }
 
     async function userSignupPost(formValues) {
-        return await axios.post('https://demo-api.now.sh/users', formValues)
+        try {
+            const response = await axios.post('https://demo-api.now.sh/users', formValues);
+            if (response) {
+                alert('Form successfully submitted using POST');
+            }
+        } catch (err){
+            console.error(err);
+        }
     }
 
     async function userSignupGet(formValues) {
-        return await axios.get('https://demo-api.now.sh/users', formValues)
+        try {
+            const response = await axios.get('https://demo-api.now.sh/users', formValues);
+            if (response) {
+                alert('Form successfully submitted using GET');
+                console.log(response.data);
+            }
+        } catch (err) {
+            console.error(err);
+        }
     }
 
     const onSubmit = e => {
@@ -51,15 +66,10 @@ export const SignUpForm = () => {
 
         if (formValid(values)) {
             userSignupPost(formData)
-            .then(function (res) {
-                alert('Form successfully submitted using POST');
-                clearFormFields();
-                setTimeout(function(){
-                    userSignupGet(formData).then(function (res) {
-                        alert('Form successfully submitted using GET');
-                    }).catch(err => console.log(err));
-                }, 4000);
-            }).catch(err => console.log(err));
+            clearFormFields();
+            setTimeout(function () {
+                userSignupGet(formData)
+            }, 4000);
         } else {
             console.log("Form is invalid!");
         }
@@ -87,12 +97,12 @@ export const SignUpForm = () => {
                 break;
             case "password":
                 let errText = "";
-                if(!pwdRegEx.test(value)){
-                    errText =  "Password must be between 8 to 16 characaters long";
-                }else if(value.toUpperCase().indexOf(fname.toUpperCase()) > -1 ){
-                    errText =  "Password cannot contain users Firstname";
-                }else if(value.toUpperCase().indexOf(lname.toUpperCase()) > -1){
-                    errText =  "Password cannot contain users Lastname";
+                if (!pwdRegEx.test(value)) {
+                    errText = "Password must be between 8 to 16 characaters long";
+                } else if (value.toUpperCase().indexOf(fname.toUpperCase()) > -1) {
+                    errText = "Password cannot contain users Firstname";
+                } else if (value.toUpperCase().indexOf(lname.toUpperCase()) > -1) {
+                    errText = "Password cannot contain users Lastname";
                 }
                 isError.password = errText;
                 setPassword(value);
