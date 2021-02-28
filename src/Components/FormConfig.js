@@ -3,7 +3,7 @@ export const FormConfig = [
         type: "text",
         name: "fname",
         label: "First Name",
-        // required: false
+        required: true
     },
     {
         type: "text",
