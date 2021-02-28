@@ -6,31 +6,29 @@ import axios from 'axios';
 const regExp = RegExp(
     /^[a-zA-Z0-9]+@[a-zA-Z0-9]+\.[A-Za-z]+$/
 );
-const pwdRegEx = RegExp(
-    /^[a-zA-Z0-9!@#$%^&*.]{8,16}$/
-);
 export const SignUpForm = () => {
-    const [fname, setFname] = useState('');
-    const [lname, setLname] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isError, setIsError] = useState({
-        fname: '',
-        lname: '',
-        email: '',
-        password: ''
-    });
+    const formKeys = FormConfig.reduce((accumaltor, field) => {
+        accumaltor = {...accumaltor, [field.name]: ''};
+        return accumaltor;
+    }, {});
+    const [inputs, setInputs] = useState({...formKeys});
+    const [isError, setIsError] = useState({...formKeys});
 
     const formValid = ({ isError, ...rest }) => {
-        // console.log('formData before post ==>', {...rest});
-        return Object.keys(isError).every(eachField => rest[eachField].length > 0 && isError[eachField].length === 0);
+        console.log('FormConfig', FormConfig)        
+        Object.keys(rest).forEach(field => {
+            const isRequiredField = FormConfig.find(f => f.name === field).required;
+            console.log('FormConfig[field].required', isRequiredField);
+            if(rest[field].length === 0 && isRequiredField) {
+                isError[field] = `Please enter a value for ${field}`;
+            }
+        });
+        if(validateFields(rest)) return false;
+        return Object.keys(isError).every(eachField => isError[eachField].length === 0);
     };
 
     const clearFormFields = () => {
-        setFname('');
-        setLname('');
-        setPassword('');
-        setEmail('');
+        setInputs({...formKeys});
     }
 
     async function userSignupPost(formValues) {
@@ -58,7 +56,7 @@ export const SignUpForm = () => {
 
     const onSubmit = e => {
         e.preventDefault();
-        const values = { fname, lname, email, password, isError };
+        const values = {...inputs, isError};
         const formData = new FormData();
         Object.keys(values).forEach(val => {
             formData.append(val, values[val]); //formData.append(fname, "Mike");
@@ -71,70 +69,72 @@ export const SignUpForm = () => {
                 userSignupGet(formData)
             }, 4000);
         } else {
+            setIsError({...isError});
             console.log("Form is invalid!");
         }
     };
 
+    const validateFields = (values) => {
+        let hasError = false;
+        Object.keys(values).forEach(key => {
+            const value = values[key];
+            switch (key) {
+                case "fname":
+                    isError.fname =
+                        value.length < 4 ? (hasError = true, "Atleast 4 characaters required for First Name") : "";
+                    break;
+                case "lname":
+                    isError.lname =
+                        value.length < 4 ? (hasError = true, "Atleast 4 characaters required for Last Name") : "";
+                    break;
+                case "email":
+                    isError.email = regExp.test(value)
+                        ? ""
+                        : (hasError = true, "Email address is invalid");
+                    break;
+                case "password":
+                    let errText = "";
+                    const val = value.toLowerCase();
+                    if (value.length < 8) {
+                        errText = "Password must be at least 8 characaters long";
+                    }
+                    else if(!(value.split('').some(char => !parseInt(char) && char === char.toLowerCase()))){
+                        errText = "Password should contain at least one lowercase letter";
+                    }
+                    else if(!(value.split('').some(char => !parseInt(char) && char === char.toUpperCase()))){
+                        errText = "Password should contain at least one uppercase letter";
+                    }
+                    else if (inputs.fname.length > 0 &&  val.includes(inputs.fname.toLowerCase())) {
+                        errText = "Password cannot contain users Firstname";
+                    }  
+                    else if (inputs.lname.length > 0 &&  val.includes(inputs.lname.toLowerCase())) {
+                        errText = "Password cannot contain users Lastname";
+                    }
+                    isError.password = errText;
+                    if(errText.length > 0) hasError = true;
+                    break;
+                default:
+                    break;
+            }
+            setIsError(isError);
+        });
+        return hasError;
+    }
+
     const onFieldChange = e => {
         e.preventDefault();
         const { name, value } = e.target;
-        switch (name) {
-            case "fname":
-                isError.fname =
-                    value.length < 4 ? "Atleast 4 characaters required for First Name" : "";
-                setFname(value);
-                break;
-            case "lname":
-                isError.lname =
-                    value.length < 4 ? "Atleast 4 characaters required for Last Name" : "";
-                setLname(value);
-                break;
-            case "email":
-                isError.email = regExp.test(value)
-                    ? ""
-                    : "Email address is invalid";
-                setEmail(value);
-                break;
-            case "password":
-                let errText = "";
-                if (!pwdRegEx.test(value)) {
-                    errText = "Password must be between 8 to 16 characaters long";
-                } else if (value.toUpperCase().indexOf(fname.toUpperCase()) > -1) {
-                    errText = "Password cannot contain users Firstname";
-                } else if (value.toUpperCase().indexOf(lname.toUpperCase()) > -1) {
-                    errText = "Password cannot contain users Lastname";
-                }
-                isError.password = errText;
-                setPassword(value);
-                break;
-            default:
-                break;
-        }
-        setIsError(isError);
+        setInputs(inputs => ({...inputs, [name]: value}));
     };
 
-    const getFieldValue = (name) => {
-        switch (name) {
-            case "fname":
-                return fname;
-            case "lname":
-                return lname;
-            case "email":
-                return email;
-            case "password":
-                return password;
-            default:
-                return '';
-        }
-    }
-
+    console.log('inputs', inputs);
     return (
-        <form onSubmit={onSubmit} id="signup-form">
+        <form id="signup-form" onSubmit={onSubmit}>
             {
                 FormConfig.map((formField, index) =>
                     <FormContainer
                         key={index}
-                        value={getFieldValue(formField.name)}
+                        value={inputs[formField.name]} //{getFieldValue(formField.name)}
                         type={formField.type}
                         name={formField.name}
                         label={formField.label}
